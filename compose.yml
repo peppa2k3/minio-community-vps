@@ -1,0 +1,27 @@
+services:
+  storage-minio:
+    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ["server", "/data", "--console-address", ":9001"]
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+    ports:
+      - "127.0.0.1:9001:9001"
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.minio-s3.rule=Host(`${S3_DOMAIN}`)"
+      - "traefik.http.routers.minio-s3.entrypoints=websecure"
+      - "traefik.http.routers.minio-s3.tls=true"
+      - "traefik.http.routers.minio-s3.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-le}"
+      - "traefik.http.routers.minio-s3.service=minio-s3"
+      - "traefik.http.services.minio-s3.loadbalancer.server.port=9000"
+
+networks:
+  web:
+    external: true
+    name: web
